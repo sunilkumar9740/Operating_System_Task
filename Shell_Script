@@ -1,0 +1,94 @@
+#!/bin/sh
+#The script is about changing the file name to the uppercase or lower case.
+#help command
+if [ $1 = "-h" ]; then
+	echo " Input the Filename"
+	echo " modify using sed pattern"
+	echo " modify [-h]"
+	echo " -r -l -u for Recurrsive Lowercase and Uppercase"
+	
+exit 0
+fi
+#exit successfully
+
+Recursive=0 #Set recursive mode
+LOWER=0	    #Set Lower Case
+UPPER=0	    #Set Upper Case
+SED_MODE=0  #Set Sed Mode
+MODE=0      #Set Mode
+SED_PATTERN="" #Set Sed pattern
+file=`basename $0`
+echo "$file\n" 
+modifyFile(){
+                ORIGINAL_NAME=`basename "$1"` #filename 
+                CURRENT_PATH=`dirname "$1"`   #directory name
+ 
+                if [ "$ORIGINAL_NAME" = "$file" ] ; then
+                        return
+                fi
+ 
+                case $MODE in
+                        "1") MODIFY_NAME=`echo "$ORIGINAL_NAME" |  tr 'A-Z' 'a-z'` ;; #translating upper case to lower case 
+                        "2") MODIFY_NAME=`echo "$ORIGINAL_NAME" |  tr 'a-z' 'A-Z'` ;; #translating lower case to upper case
+                        "3") MODIFY_NAME=`echo "$ORIGINAL_NAME" |  sed -s $SED_PATTERN` ;; #calling Sed pattern
+                esac
+ 
+                
+                if [ -f "$CURRENT_PATH/$MODIFY_NAME" ] ; then #if the file already  modified then it give the message 
+                         `echo "File $MODIFY_NAME already exists, name modifying failed" 1>&2`
+                        return
+                else
+                        mv "$1" "$CURRENT_PATH/$MODIFY_NAME" #the file modified
+                fi     
+}
+modifyNames(){
+        
+        if [ ! -f "$1" -a ! -d "$1" ] ; then #comparing the file,if the file are same show the message.  
+                        `echo "Neither file nor directory --$1-- exists" 1>&2`
+                        return
+        fi
+ 
+        if [ ! -w "$1" -a -f "$1" ]; then 
+                `echo "File $1 cannot be modified" 1>&2`
+                return
+        fi
+ 
+        if [ $Recursive -eq 1 ] ; then
+                if [ -d "$1" ] ; then
+     
+                        
+                          find "$1"  -depth  | while read -r file ; do
+                                modifyFile "$file"
+                        done
+                 
+                else   
+                        
+                modifyFile "$1"
+                fi
+        else            
+                
+                modifyFile "$1"
+        fi
+}
+ 
+while [ "$1" != "" ]; do
+        case "x$1" in
+                "x-r")  Recursive=1 ;; #Recursive Selection
+                "x-l")  MODE=1 ;;      #Lower Case Selection
+                "x-u")  MODE=2 ;;      #Upper Case Selection
+                "x-h")  printHelp      #Helping Commands Selection
+                                exit ;;
+                *)
+ 		# check for sed pattern
+		# change file name according to the sed pattern	  
+		# calling Sed Pattern             
+                if [ $MODE -eq 0 ]; then 
+                        MODE=3
+                        SED_PATTERN="$1"
+                else
+                        modifyNames "$1"
+                fi
+                ;;
+        esac
+shift
+done
